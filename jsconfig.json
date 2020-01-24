@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+      "target": "es5",
+      "noImplicitAny": true,
+      "module": "es2015",
+      "sourceMap": true,
+      "allowJs": true,
+      "jsx": "react",
+      "types": ["node"],
+      "moduleResolution": "node",
+      "experimentalDecorators": true,
+      "allowSyntheticDefaultImports": true,
+      "lib": ["es2015", "es2017", "dom"]
+    },
+    "filesGlob":["src/**/*.ts","src/**/*.tsx"],
+    "exclude": [
+      "node_modules" 
+    ],
+    "paths": {
+      // Fix "Duplicate identifier" errors caused by multiple dependencies fetching their own copies of type definitions.
+      // We tell TypeScript which type definitions module to treat as the canonical one (instead of combining all of them).
+      "history": ["./node_modules/@types/history/index"],
+      "mobx": ["./node_modules/@types/mobx/index"],
+      "react": ["./node_modules/@types/react/index"]
+    }
+  }

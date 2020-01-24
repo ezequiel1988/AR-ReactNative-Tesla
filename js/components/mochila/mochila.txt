@@ -1,0 +1,83 @@
+import React from "react";
+import TabContainer from "../../routes/routesTabs";
+import { PanResponder, Animated, View, Button, Text } from "react-native";
+import { Provider } from "mobx-react";
+import NotInterna from "../notificaciones/notificacioInterna";
+import assetsStore from "../../store/AssetsStore";
+
+var sharedProps = {
+    apiKey:"474AEC79-2875-4AB1-8FF7-F2702E7069BB",
+  }
+  var UNSET = "UNSET";
+  var AR_NAVIGATOR_TYPE = "AR";
+  var defaultNavigatorType = UNSET;
+  
+
+class Index extends React.Component {
+
+    constructor() {
+        super();
+        this.state = {
+          pan: new Animated.ValueXY(),
+          opacity: new Animated.Value(1),
+          store: assetsStore,
+          navigatorType : defaultNavigatorType,
+          sharedProps : sharedProps,
+    
+        }
+        // Initialize PanResponder with move handling
+        this.panResponder = PanResponder.create({
+          onStartShouldSetPanResponder: (e, gesture) => true,
+          onPanResponderRelease: (e, gesture) => {
+            if (gesture.moveX > 100) {
+              Animated.timing(this.state.opacity, {
+              toValue: 0,
+              duration: 100
+            }).start()
+          } else {
+            Animated.spring(this.state.pan, {
+              toValue: { x: 0, y: 0 },
+              friction: 5
+            }).start();
+          }
+          },
+          onPanResponderMove: Animated.event([
+            null, { dx: this.state.pan.x, dy:null }
+          ])
+        });
+
+        this._getExperienceSelector = this._getExperienceSelector.bind(this);
+        this._getARNavigator = this._getARNavigator.bind(this);
+    
+      }
+
+      render() { 
+        if (this.state.navigatorType == UNSET) {
+          return this._getExperienceSelector();
+        } else if (this.state.navigatorType == AR_NAVIGATOR_TYPE) {
+          return this._getARNavigator();
+        }
+      }
+      _getExperienceSelector() { 
+        return (
+            <Provider>
+                <Animated.View {...this.panResponder.panHandlers}
+                style={{transform: this.state.pan.getTranslateTransform(), opacity: this.state.opacity, position:"absolute", zIndex:-1, width:"100%"}}>                
+                    {/* <NotInterna openAR={this._getExperienceButtonOnPress(AR_NAVIGATOR_TYPE)} /> */}
+                    <NotInterna />
+                </Animated.View>
+                <TabContainer screenProps={this.props.screenProps}/>
+            </Provider>
+        )
+    }
+
+    _getARNavigator() {
+        return (
+              <ViroARSceneNavigator  initialScene={{
+                scene: HelloWorldSceneAR,
+              }} {...this.state.sharedProps} viroAppProps={this.viroAppProps} />
+        );
+      }
+}
+
+export default Index;

@@ -1,0 +1,43 @@
+import React from "react"
+import { createBottomTabNavigator } from 'react-navigation-tabs';
+import HomeUsuario from '../components/home/homeUsuario';
+import { createAppContainer } from 'react-navigation';
+import Login from '../components/Login';
+import { Icon } from "native-base";
+
+
+const getTabBarIcon = (navigation, focused, tintColor) => {
+  const { routeName } = navigation.state;
+  let IconComponent = Icon;
+  let iconName;
+  if (routeName === 'Home') {
+    iconName = `ios-information-circle${focused ? '' : '-outline'}`;
+    // We want to add badges to home tab icon
+  } else if (routeName === 'Settings') {
+    iconName = `ios-options${focused ? '' : '-outline'}`;
+  }
+
+  // You can return any component that you like here!
+  return <IconComponent name={iconName} size={25} color={tintColor} />;
+};
+
+  const TabContainer = createAppContainer(
+    createBottomTabNavigator(
+      {
+        Home: { screen: HomeUsuario },
+        Settings: { screen: Login },
+      },
+      {
+        defaultNavigationOptions: ({ navigation }) => ({
+          tabBarIcon: ({ focused, tintColor }) =>
+            getTabBarIcon(navigation, focused, tintColor),
+        }),
+        tabBarOptions: {
+          activeTintColor: 'tomato',
+          inactiveTintColor: 'gray',
+          showLabel: false,
+        },
+      }
+    )
+  );
+  export default TabContainer;

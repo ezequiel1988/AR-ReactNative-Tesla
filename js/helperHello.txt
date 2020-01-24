@@ -1,0 +1,197 @@
+"use strict";
+
+import React, { Component } from "react";
+import {
+  ViroARScene,
+  ViroMaterials,
+  Viro3DObject,
+  ViroAmbientLight,
+  ViroARPlane
+} from "react-viro";
+import RNFS from "react-native-fs";
+import FetchUser from "./restProviders/peticiones";
+import assetsStore from "./store/AssetsStore";
+import AsyncStorage from "@react-native-community/async-storage";
+
+
+
+
+
+
+
+class HelloWorldSceneAR extends Component {
+
+  numerosAleatorios() {
+    let numUno = Math.random();
+    let numDos = Math.random();
+    let suma = numUno + numDos
+    return suma
+  }
+
+  _pushNextScene(instanceId){
+    this.props.arSceneNavigator.viroAppProps.assets.cupons = null;
+    this.props.arSceneNavigator.viroAppProps.assets.mostrarViro = false;
+    this.props.arSceneNavigator.viroAppProps.assets.mostrarMochila = 1;
+    this.props.arSceneNavigator.viroAppProps.assets.atraparObj(instanceId);
+    this.props.arSceneNavigator.viroAppProps.navigation.navigate("Mochila");
+  }
+
+  render() { console.log(this.props.arSceneNavigator.viroAppProps.assets, "log desde finder")
+    return (
+      <ViroARScene onTrackingUpdated={this._onInitialized}>
+        <ViroAmbientLight color={"#aaaaaa"} />
+          {
+            this.props.arSceneNavigator.viroAppProps.assets.cupons.data.Content.map((el, index)=> {
+              return <ViroARPlane key={index} minHeight={.5} minWidth={.5} alignment={"Horizontal"}>
+               <Viro3DObject
+                      
+                      onClick={()=> this._pushNextScene(el.instanceId)}          
+                      source={{uri:`file:///data/data/com.viro/files/${el.object.name}/go/src/objeto_3d.obj`}}
+                      resources={[{uri:`file:///data/data/com.viro/files/${el.object.name}/go/src/objeto_3d.mtl`}]}
+                      
+                      materials={el.object.name}
+                      position={[this.numerosAleatorios() *2, -0.3, -.5]}
+                      scale={[.2, .2, .2]}
+                      type="OBJ" />
+        </ViroARPlane>
+            })
+          }
+      </ViroARScene>
+    );
+  }
+}
+
+async function obtenerZips (){
+  let rest = new FetchUser();
+  let zips = [];
+  let store = assetsStore;
+  const res = await rest.getAssets(store.userToken);
+  zips = res.data.Content
+  return zips
+  
+ }
+
+ async function archivosDelStorage() {
+  /*
+  Funcion obtiene los archivos del storage del celular, si no se inicio sesion o no hay nada en el storage, se ejecuta de nuevo
+  */
+  let store = assetsStore;
+  var response = [];
+  var route = `${RNFS.DocumentDirectoryPath}`;
+  const res = await RNFS.readDir(route);
+  let resto = res.length % 2;
+  obtenerZips();
+
+  console.log("sin token o sin nada en el storage")
+
+if(store.userToken == null || res.length < 2) {
+
+  archivosDelStorage()
+
+} else {
+  //si hay la misma cantidad de elementos en la peticion y el storage
+  //entonces arma los objetos, sino llama de nuevo
+  if(resto == 0) {
+    let zips = await obtenerZips();
+    let aux = res.length /2;
+    if(aux == zips.length) {
+      console.log("Ya se descargo todos los zips en el if")
+      res.map((el)=> response.push(el.name))
+      return armarObjetoTexturas(zips, response)
+  
+    } else {
+      console.log("se ejecuta si no hay zip descargados del if")
+      archivosDelStorage()
+    }
+  } else {
+    //pregunta si hay de 2 archivos por lo menos en el storage
+    let zips = await obtenerZips();
+    let aux = res.length >= 2 ? (res.length - 1)/2 : res.length ;
+    if(aux == zips.length) {
+      console.log("Ya se descargo todos los zips en el else")
+      res.map((el)=> response.push(el.name))
+      return armarObjetoTexturas(zips, response)
+
+    } else {
+      console.log("se ejecuta si no hay zip descargados del else")
+      archivosDelStorage()
+    }
+  }
+
+}
+ 
+}
+ 
+
+  async function armarObjetoTexturas (zipsAssets, storageFile) {
+    
+    var zips = [];
+    var response = [];
+    var container = {};
+     zips = await zipsAssets;
+     response = await storageFile;
+
+     for (let i = 0; i < zips.length; i++) {     
+      const cupons = zips[i];
+      response.filter(element => {
+        if (cupons.name === element) {
+         return container[`${element}`] = {
+            diffuseTexture: {
+              uri: `file:///data/data/com.viro/files/${element}/go/src/texture_3d.png`
+            }
+          };
+        }
+      });      
+    }
+    console.log(container, "Objetos de viroMaterials");
+    await AsyncStorage.setItem("@obj_user",JSON.stringify(container));
+
+    storageObjeto();
+   
+
+      
+  }
+
+  async function storageObjeto () {
+    try {
+        
+        const res = await AsyncStorage.getItem("@obj_user")
+
+        /*
+        cuando se instala la primera vez res va a ser null.
+        Si res = null; entonces llamar a archivosDelStorage()
+        
+        */
+       if (res == null) {
+         setTimeout(()=>  intervalos(), 10000);
+       } else {
+        console.log(JSON.parse(res),"sin parsear: ",res);
+        
+        return ViroMaterials.createMaterials(JSON.parse(res))
+       }
+      
+        
+
+  
+    } catch (e) {
+      console.log(e)
+    }
+  
+  }
+
+  function intervalos () {
+    
+    setInterval(()=> {
+      var store = assetsStore;
+      if (store.userToken == null) {
+        archivosDelStorage();
+      }
+    }, 3000);
+
+
+  }
+
+
+storageObjeto();
+
+module.exports = HelloWorldSceneAR
